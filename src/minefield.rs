@@ -50,34 +50,30 @@ pub struct Minefield {
     rows: usize,
     cols: usize,
     content: Vec<Vec<Cell>>,
-    mines: Vec<[usize; 2]>,
 }
 
 impl Minefield {
-    pub fn rows(&self) -> usize {
+    /// the number of rows in the minefield (e.g. self.content.len())
+    pub const fn rows(&self) -> usize {
         self.rows
     }
 
-    pub fn cols(&self) -> usize {
+    /// the number of columns in the minefield (e.g. self.content[0].len())
+    pub const fn cols(&self) -> usize {
         self.cols
     }
 
-    pub fn foreach_mut(&mut self, mut func: impl FnMut(&mut Cell)) {
-        for row in &mut self.content {
-            for cell in row {
-                func(cell);
-            }
-        }
-    }
-
+    /// get a mutable reference to a single cell
     pub fn get_mut(&mut self, row: usize, col: usize) -> Option<&mut Cell> {
         self.content.get_mut(row)?.get_mut(col)
     }
 
+    /// get an immutable reference to a single cell
     pub fn get(&self, row: usize, col: usize) -> Option<&Cell> {
         self.content.get(row)?.get(col)
     }
 
+    /// generate a new random minefield of a specific size
     pub fn generate(rows: usize, cols: usize) -> Self {
         let mut this = Self {
             rows,
@@ -85,7 +81,6 @@ impl Minefield {
             content: std::iter::repeat_with(|| vec![Cell::default(); cols])
                 .take(rows)
                 .collect(),
-            mines: Vec::new(),
         };
         let mut random = thread_rng();
         for _ in 0..(rows * cols / 6) {
@@ -96,25 +91,30 @@ impl Minefield {
                 continue;
             }
             cell_ref.is_mine = true;
-            // drop cell ref
-            this.mines.push([row, col]);
         }
         this.calculate_adjacent();
         this
     }
 
+    /// Internally calculate how many cells are adjacent to each other cell.
+    /// This should be called any time a cell changes between being a mine or not.
     pub fn calculate_adjacent(&mut self) {
+        // first, 2d loop through each cell
         for row in 0..self.rows {
             for col in 0..self.cols {
+                // if the cell is a mine, we don't need to know how many are adjacent
                 if self.get(row, col).is_some_and(|cell| cell.is_mine) {
                     continue;
                 }
                 let mut adj = 0;
+                // 2d loop through all adjacent cells
                 for dx in 0..3 {
                     for dy in 0..3 {
+                        // ignore current cell
                         if dx == 1 && dy == 1 {
                             continue;
                         }
+                        // check if the adjacent cell exists and is a mine
                         if self
                             .get((row + dy).wrapping_sub(1), (col + dx).wrapping_sub(1))
                             .is_some_and(|cell| cell.is_mine)
@@ -128,15 +128,20 @@ impl Minefield {
         }
     }
 
-    pub fn print_mines(&self) {
+    pub fn print(&self) {
+        let bar = "─".repeat(self.cols * 2 + 1);
+        println!("┌{bar}┐");
         for row in &self.content {
+            print!("│");
             for cell in row {
                 cell.print();
             }
-            println!();
+            println!(" │");
         }
+        println!("└{bar}┘");
     }
 
+    /// Iterate through all cells in the minefield
     pub fn iter(&self) -> impl Iterator<Item = &Cell> {
         self.content.iter().flat_map(|row| row.iter())
     }
