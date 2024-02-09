@@ -30,7 +30,7 @@ impl Cell {
             ["\x1b[93m", "\x1b[0m"],
         ];
         if self.is_flagged {
-            print!(" !");
+            print!(" \x1b[93m!\x1b[0m");
         } else if !self.is_revealed {
             print!(" ?");
         } else if self.is_mine {
@@ -54,6 +54,14 @@ pub struct Minefield {
 }
 
 impl Minefield {
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    pub fn cols(&self) -> usize {
+        self.cols
+    }
+
     pub fn foreach_mut(&mut self, mut func: impl FnMut(&mut Cell)) {
         for row in &mut self.content {
             for cell in row {
@@ -122,11 +130,14 @@ impl Minefield {
 
     pub fn print_mines(&self) {
         for row in &self.content {
-            print!("|");
             for cell in row {
                 cell.print();
             }
-            println!(" |");
+            println!();
         }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Cell> {
+        self.content.iter().flat_map(|row| row.iter())
     }
 }
