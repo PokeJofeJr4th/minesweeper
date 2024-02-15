@@ -56,33 +56,105 @@ fn run_field() -> Result<(), Box<dyn Error>> {
                     kind: KeyEventKind::Press,
                     ..
                 }) => {
-                    let amount = if modifiers == KeyModifiers::SHIFT {
-                        3
-                    } else {
-                        1
-                    };
+                    let is_modified = modifiers == KeyModifiers::SHIFT
+                        || modifiers == KeyModifiers::CONTROL
+                        || modifiers == KeyModifiers::ALT;
                     match code {
                         KeyCode::Down => {
                             execute!(stdout, MoveTo(col * 2 + 1, row + 1))?;
                             print!(" ");
-                            row = (row + amount).rem_euclid(field.rows() as u16);
+                            if is_modified {
+                                let start_revealed = field
+                                    .get(row as usize, col as usize)
+                                    .map(|cell| cell.is_revealed)
+                                    .unwrap_or_default();
+                                let mut i = field.rows() / 2;
+                                while (row as usize) < field.rows() - 1 && i > 0 {
+                                    row += 1;
+                                    i -= 1;
+                                    let is_revealed = field
+                                        .get(row as usize, col as usize)
+                                        .map(|cell| cell.is_revealed)
+                                        .unwrap_or_default();
+                                    if is_revealed ^ start_revealed {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                row = (row + 1).rem_euclid(field.rows() as u16);
+                            }
                         }
                         KeyCode::Up => {
                             execute!(stdout, MoveTo(col * 2 + 1, row + 1))?;
                             print!(" ");
-                            row = (((row as i16) - (amount as i16)).rem_euclid(field.rows() as i16))
-                                as u16;
+                            if is_modified {
+                                let start_revealed = field
+                                    .get(row as usize, col as usize)
+                                    .map(|cell| cell.is_revealed)
+                                    .unwrap_or_default();
+                                let mut i = field.rows() / 2;
+                                while row > 0 && i > 0 {
+                                    row -= 1;
+                                    i -= 1;
+                                    let is_revealed = field
+                                        .get(row as usize, col as usize)
+                                        .map(|cell| cell.is_revealed)
+                                        .unwrap_or_default();
+                                    if is_revealed ^ start_revealed {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                row = (((row as i16) - 1).rem_euclid(field.rows() as i16)) as u16;
+                            }
                         }
                         KeyCode::Right => {
                             execute!(stdout, MoveTo(col * 2 + 1, row + 1))?;
                             print!(" ");
-                            col = (col + amount).rem_euclid(field.cols() as u16);
+                            if is_modified {
+                                let start_revealed = field
+                                    .get(row as usize, col as usize)
+                                    .map(|cell| cell.is_revealed)
+                                    .unwrap_or_default();
+                                let mut i = field.cols() / 2;
+                                while (col as usize) < field.cols() - 1 && i > 0 {
+                                    col += 1;
+                                    i -= 1;
+                                    let is_revealed = field
+                                        .get(row as usize, col as usize)
+                                        .map(|cell| cell.is_revealed)
+                                        .unwrap_or_default();
+                                    if is_revealed ^ start_revealed {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                col = (col + 1).rem_euclid(field.cols() as u16);
+                            }
                         }
                         KeyCode::Left => {
                             execute!(stdout, MoveTo(col * 2 + 1, row + 1))?;
                             print!(" ");
-                            col = (((col as i16) - (amount as i16)).rem_euclid(field.cols() as i16))
-                                as u16;
+                            if is_modified {
+                                let start_revealed = field
+                                    .get(row as usize, col as usize)
+                                    .map(|cell| cell.is_revealed)
+                                    .unwrap_or_default();
+                                let mut i = field.cols() / 2;
+                                while col > 0 && i > 0 {
+                                    col -= 1;
+                                    i -= 1;
+                                    let is_revealed = field
+                                        .get(row as usize, col as usize)
+                                        .map(|cell| cell.is_revealed)
+                                        .unwrap_or_default();
+                                    if is_revealed ^ start_revealed {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                col = (((col as i16) - 1).rem_euclid(field.cols() as i16)) as u16;
+                            }
                         }
                         KeyCode::Char(' ') => {
                             let cell = field.get_mut(row as usize, col as usize).unwrap();
@@ -91,7 +163,7 @@ fn run_field() -> Result<(), Box<dyn Error>> {
                             }
                         }
                         KeyCode::Enter => {
-                            if modifiers == KeyModifiers::ALT {
+                            if is_modified {
                                 // dig a whole 3x3 area
                                 for dy in 0..3 {
                                     let Some(row) = (row + dy).checked_sub(1) else {
@@ -172,7 +244,7 @@ fn dig(field: &mut Minefield, row: u16, col: u16) -> Result<Option<&Cell>, Box<d
         return Ok(None);
     };
     if !cell.is_flagged {
-        if cell.adjacent == 0 {
+        if cell.adjacent == 0 && !cell.is_mine {
             reveal_empty(field, row, col)?;
         } else {
             // just reveal the current cell
