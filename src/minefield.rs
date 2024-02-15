@@ -30,11 +30,11 @@ impl Cell {
             ["\x1b[93m", "\x1b[0m"],
         ];
         if self.is_flagged {
-            print!(" \x1b[93m!\x1b[0m");
+            print!(" \x1b[93m%\x1b[0m");
         } else if !self.is_revealed {
             print!(" ?");
         } else if self.is_mine {
-            print!(" @");
+            print!(" \x1b[91m@\x1b[0m");
         } else if self.adjacent == 0 {
             print!("  ");
         } else {
@@ -83,7 +83,7 @@ impl Minefield {
                 .collect(),
         };
         let mut random = thread_rng();
-        for _ in 0..(rows * cols / 6) {
+        for _ in 0..(rows * cols / 5) {
             let row = random.gen_range(0..rows);
             let col = random.gen_range(0..cols);
             let cell_ref = this.get_mut(row, col).unwrap();
@@ -145,4 +145,9 @@ impl Minefield {
     pub fn iter(&self) -> impl Iterator<Item = &Cell> {
         self.content.iter().flat_map(|row| row.iter())
     }
+
+    // /// Iterate through all cells in the minefield
+    // pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Cell> {
+    //     self.content.iter_mut().flat_map(|row| row.iter_mut())
+    // }
 }
