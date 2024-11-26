@@ -26,8 +26,8 @@ fn main() {
         }
     } else if args.len() == 2 {
         if args[1].to_lowercase() == "max" {
-            if let Some((cols, rows)) = terminal_size::terminal_size() {
-                run_field(rows.0 as usize - 4, (cols.0 as usize - 3) / 2).unwrap();
+            if let Ok((cols, rows)) = crossterm::terminal::size() {
+                run_field(rows as usize - 4, (cols as usize - 3) / 2).unwrap();
             } else {
                 println!("Failed to get the terminal window size :(");
             }
@@ -64,7 +64,7 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
         // check for win/lose conditions
         if field
             .iter()
-            .all(|cell| (cell.is_mine && cell.is_flagged) || cell.is_revealed)
+            .all(|cell| (cell.is_mine() && cell.is_flagged()) || cell.is_revealed())
         {
             end_game("You Win!", &field, row, col, handle)?;
             return Ok(());
@@ -88,14 +88,14 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .is_some_and(|cell| cell.is_revealed);
+                                    .is_some_and(Cell::is_revealed);
                                 let mut i = field.rows() / 2;
                                 while (row as usize) < field.rows() - 1 && i > 0 {
                                     row += 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .is_some_and(|cell| cell.is_revealed);
+                                        .is_some_and(Cell::is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -110,14 +110,14 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .is_some_and(|cell| cell.is_revealed);
+                                    .is_some_and(Cell::is_revealed);
                                 let mut i = field.rows() / 2;
                                 while row > 0 && i > 0 {
                                     row -= 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .is_some_and(|cell| cell.is_revealed);
+                                        .is_some_and(Cell::is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -132,14 +132,14 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .is_some_and(|cell| cell.is_revealed);
+                                    .is_some_and(Cell::is_revealed);
                                 let mut i = field.cols() / 2;
                                 while (col as usize) < field.cols() - 1 && i > 0 {
                                     col += 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .is_some_and(|cell| cell.is_revealed);
+                                        .is_some_and(Cell::is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -154,14 +154,14 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .is_some_and(|cell| cell.is_revealed);
+                                    .is_some_and(Cell::is_revealed);
                                 let mut i = field.cols() / 2;
                                 while col > 0 && i > 0 {
                                     col -= 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .is_some_and(|cell| cell.is_revealed);
+                                        .is_some_and(Cell::is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -172,8 +172,8 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                         }
                         KeyCode::Char(' ') => {
                             let cell = field.get_mut(row as usize, col as usize).unwrap();
-                            if !cell.is_revealed {
-                                cell.is_flagged = !cell.is_flagged;
+                            if !cell.is_revealed() {
+                                cell.set_is_flagged(!cell.is_flagged());
                             }
                         }
                         KeyCode::Enter => {
@@ -191,7 +191,7 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                                             continue;
                                         };
                                         print_cell(&mut stdout, &field, row, col)?;
-                                        if !cell.is_flagged && cell.is_mine {
+                                        if !cell.is_flagged() && cell.is_mine() {
                                             kaboom(&mut field, row, col, handle)?;
                                             return Ok(());
                                         }
@@ -203,7 +203,7 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                                     first_one = false;
                                 }
                                 if let Some(&cell) = dig(&mut field, row, col)? {
-                                    if !cell.is_flagged && cell.is_mine {
+                                    if !cell.is_flagged() && cell.is_mine() {
                                         kaboom(&mut field, row, col, handle)?;
                                         return Ok(());
                                     }
@@ -234,11 +234,11 @@ fn kaboom(
     for row in 0..field.rows() {
         for col in 0..field.cols() {
             let cell = field.get_mut(row, col).unwrap();
-            let needs_update = if cell.is_flagged {
-                cell.is_flagged = false;
+            let needs_update = if cell.is_flagged() {
+                cell.set_is_flagged(false);
                 true
-            } else if cell.is_mine {
-                cell.is_revealed = true;
+            } else if cell.is_mine() {
+                cell.set_is_revealed(true);
                 true
             } else {
                 false
@@ -258,15 +258,15 @@ fn dig(field: &mut Minefield, row: u16, col: u16) -> Result<Option<&Cell>, Box<d
     let Some(cell) = field.get(row as usize, col as usize) else {
         return Ok(None);
     };
-    if !cell.is_flagged {
-        if cell.adjacent == 0 && !cell.is_mine {
+    if !cell.is_flagged() {
+        if cell.adjacent() == 0 && !cell.is_mine() {
             reveal_empty(field, row, col)?;
         } else {
             // just reveal the current cell
             field
                 .get_mut(row as usize, col as usize)
                 .unwrap()
-                .is_revealed = true;
+                .set_is_revealed(true);
         }
     }
     let cell = field.get(row as usize, col as usize).unwrap();
@@ -280,7 +280,7 @@ fn clear_mines(field: &mut Minefield, row: u16, col: u16) {
                 (row as usize + dy).wrapping_sub(1),
                 (col as usize + dx).wrapping_sub(1),
             ) {
-                cell.is_mine = false;
+                cell.set_is_mine(false);
             }
         }
     }
@@ -295,14 +295,14 @@ fn reveal_empty(field: &mut Minefield, row: u16, col: u16) -> Result<(), Box<dyn
         let Some(cell) = field.get_mut(row, col) else {
             continue;
         };
-        if cell.is_revealed {
+        if cell.is_revealed() {
             continue;
         }
-        if cell.is_flagged {
-            cell.is_flagged = false;
+        if cell.is_flagged() {
+            cell.set_is_flagged(false);
         }
-        cell.is_revealed = true;
-        if cell.adjacent == 0 {
+        cell.set_is_revealed(true);
+        if cell.adjacent() == 0 {
             for dy in 0..3 {
                 for dx in 0..3 {
                     if dy == 1 && dx == 1 {
@@ -311,7 +311,7 @@ fn reveal_empty(field: &mut Minefield, row: u16, col: u16) -> Result<(), Box<dyn
                     if let Some(cell) =
                         field.get((row + dy).wrapping_sub(1), (col + dx).wrapping_sub(1))
                     {
-                        if !cell.is_revealed {
+                        if !cell.is_revealed() {
                             zero_queue
                                 .push(((row + dy).wrapping_sub(1), (col + dx).wrapping_sub(1)));
                         }

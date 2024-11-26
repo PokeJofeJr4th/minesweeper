@@ -1,11 +1,24 @@
+use bitfield::bitfield;
 use rand::{thread_rng, Rng};
 
-#[derive(Default, Clone, Copy, Debug)]
-pub struct Cell {
-    pub adjacent: u8,
-    pub is_revealed: bool,
-    pub is_mine: bool,
-    pub is_flagged: bool,
+// #[derive(Default, Clone, Copy, Debug)]
+// pub struct Cell {
+//     pub adjacent: u8,
+//     pub is_revealed: bool,
+//     pub is_mine: bool,
+//     pub is_flagged: bool,
+// }
+
+bitfield! {
+    #[derive(Clone, Copy, Default)]
+    pub struct Cell(u16);
+    impl Debug;
+    u8;
+    pub adjacent, set_adjacent: 7,0;
+    bool;
+    pub is_revealed, set_is_revealed: 8;
+    pub is_mine, set_is_mine: 9;
+    pub is_flagged, set_is_flagged: 10;
 }
 
 impl Cell {
@@ -29,18 +42,20 @@ impl Cell {
             // 8 = ???
             ["\x1b[93m", "\x1b[0m"],
         ];
-        if self.is_flagged {
+        if self.is_flagged() {
             print!(" \x1b[93m%\x1b[0m");
-        } else if !self.is_revealed {
+        } else if !self.is_revealed() {
             print!(" ?");
-        } else if self.is_mine {
+        } else if self.is_mine() {
             print!(" \x1b[91m@\x1b[0m");
-        } else if self.adjacent == 0 {
+        } else if self.adjacent() == 0 {
             print!("  ");
         } else {
             print!(
                 " {}{}{}",
-                COLORS[self.adjacent as usize][0], self.adjacent, COLORS[self.adjacent as usize][1]
+                COLORS[self.adjacent() as usize][0],
+                self.adjacent(),
+                COLORS[self.adjacent() as usize][1]
             );
         }
     }
@@ -87,7 +102,7 @@ impl Minefield {
             let row = random.gen_range(0..rows);
             let col = random.gen_range(0..cols);
             let cell_ref = this.get_mut(row, col).unwrap();
-            cell_ref.is_mine = true;
+            cell_ref.set_is_mine(true);
         }
         this.calculate_adjacent();
         this
@@ -100,7 +115,7 @@ impl Minefield {
         for row in 0..self.rows {
             for col in 0..self.cols {
                 // if the cell is a mine, we don't need to know how many are adjacent
-                if self.get(row, col).is_some_and(|cell| cell.is_mine) {
+                if self.get(row, col).is_some_and(Cell::is_mine) {
                     continue;
                 }
                 let mut adj = 0;
@@ -114,13 +129,13 @@ impl Minefield {
                         // check if the adjacent cell exists and is a mine
                         if self
                             .get((row + dy).wrapping_sub(1), (col + dx).wrapping_sub(1))
-                            .is_some_and(|cell| cell.is_mine)
+                            .is_some_and(Cell::is_mine)
                         {
                             adj += 1;
                         }
                     }
                 }
-                self.get_mut(row, col).unwrap().adjacent = adj;
+                self.get_mut(row, col).unwrap().set_adjacent(adj);
             }
         }
     }
