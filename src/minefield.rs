@@ -2,10 +2,10 @@ use rand::{thread_rng, Rng};
 
 #[derive(Default, Clone, Copy, Debug)]
 pub struct Cell {
+    pub adjacent: u8,
     pub is_revealed: bool,
     pub is_mine: bool,
     pub is_flagged: bool,
-    pub adjacent: u8,
 }
 
 impl Cell {
@@ -53,12 +53,12 @@ pub struct Minefield {
 }
 
 impl Minefield {
-    /// the number of rows in the minefield (e.g. self.content.len())
+    /// the number of rows in the minefield
     pub const fn rows(&self) -> usize {
         self.rows
     }
 
-    /// the number of columns in the minefield (e.g. self.content[0].len())
+    /// the number of columns in the minefield
     pub const fn cols(&self) -> usize {
         self.cols
     }
@@ -87,9 +87,6 @@ impl Minefield {
             let row = random.gen_range(0..rows);
             let col = random.gen_range(0..cols);
             let cell_ref = this.get_mut(row, col).unwrap();
-            if cell_ref.is_mine {
-                continue;
-            }
             cell_ref.is_mine = true;
         }
         this.calculate_adjacent();

@@ -1,5 +1,6 @@
 #![warn(clippy::pedantic, clippy::nursery)]
 use std::{
+    env::args,
     error::Error,
     io::{stdout, Stdout, Write},
 };
@@ -17,7 +18,28 @@ use minefield::{Cell, Minefield};
 use term_util::TermHandle;
 
 fn main() {
-    run_field().unwrap();
+    let args: Vec<_> = args().collect();
+    if args.len() == 3 {
+        if let (Ok(rows), Ok(cols)) = (args[1].parse(), args[2].parse()) {
+            run_field(rows, cols).unwrap();
+            return;
+        }
+    } else if args.len() == 2 {
+        if args[1].to_lowercase() == "max" {
+            if let Some((cols, rows)) = terminal_size::terminal_size() {
+                run_field(rows.0 as usize - 4, (cols.0 as usize - 3) / 2).unwrap();
+            } else {
+                println!("Failed to get the terminal window size :(");
+            }
+            return;
+        }
+    } else if args.len() == 1 {
+        run_field(20, 20).unwrap();
+        return;
+    }
+    println!(
+        "Invalid args. Options:\n\tminesweeper\n\tminesweeper <ROWS> <COLS>\n\tminesweeper max"
+    );
 }
 
 #[allow(
@@ -26,16 +48,16 @@ fn main() {
     clippy::cast_possible_wrap,
     clippy::too_many_lines
 )]
-fn run_field() -> Result<(), Box<dyn Error>> {
+fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
     let handle = TermHandle::new()?;
     let mut stdout = stdout();
-    let mut field = Minefield::generate(20, 20);
+    let mut field = Minefield::generate(rows, cols);
     field.print();
     let mut col = 0;
     let mut row = 0;
     let mut first_one = true;
     'turn: loop {
-        print_cell(&mut stdout, &mut field, row, col)?;
+        print_cell(&mut stdout, &field, row, col)?;
         execute!(stdout, MoveTo(col * 2 + 1, row + 1))?;
         print!(">");
         stdout.flush()?;
@@ -44,7 +66,7 @@ fn run_field() -> Result<(), Box<dyn Error>> {
             .iter()
             .all(|cell| (cell.is_mine && cell.is_flagged) || cell.is_revealed)
         {
-            end_game("You Win!", &mut field, row, col, handle)?;
+            end_game("You Win!", &field, row, col, handle)?;
             return Ok(());
         }
         'event: loop {
@@ -66,16 +88,14 @@ fn run_field() -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .map(|cell| cell.is_revealed)
-                                    .unwrap_or_default();
+                                    .is_some_and(|cell| cell.is_revealed);
                                 let mut i = field.rows() / 2;
                                 while (row as usize) < field.rows() - 1 && i > 0 {
                                     row += 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .map(|cell| cell.is_revealed)
-                                        .unwrap_or_default();
+                                        .is_some_and(|cell| cell.is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -90,16 +110,14 @@ fn run_field() -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .map(|cell| cell.is_revealed)
-                                    .unwrap_or_default();
+                                    .is_some_and(|cell| cell.is_revealed);
                                 let mut i = field.rows() / 2;
                                 while row > 0 && i > 0 {
                                     row -= 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .map(|cell| cell.is_revealed)
-                                        .unwrap_or_default();
+                                        .is_some_and(|cell| cell.is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -114,16 +132,14 @@ fn run_field() -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .map(|cell| cell.is_revealed)
-                                    .unwrap_or_default();
+                                    .is_some_and(|cell| cell.is_revealed);
                                 let mut i = field.cols() / 2;
                                 while (col as usize) < field.cols() - 1 && i > 0 {
                                     col += 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .map(|cell| cell.is_revealed)
-                                        .unwrap_or_default();
+                                        .is_some_and(|cell| cell.is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -138,16 +154,14 @@ fn run_field() -> Result<(), Box<dyn Error>> {
                             if is_modified {
                                 let start_revealed = field
                                     .get(row as usize, col as usize)
-                                    .map(|cell| cell.is_revealed)
-                                    .unwrap_or_default();
+                                    .is_some_and(|cell| cell.is_revealed);
                                 let mut i = field.cols() / 2;
                                 while col > 0 && i > 0 {
                                     col -= 1;
                                     i -= 1;
                                     let is_revealed = field
                                         .get(row as usize, col as usize)
-                                        .map(|cell| cell.is_revealed)
-                                        .unwrap_or_default();
+                                        .is_some_and(|cell| cell.is_revealed);
                                     if is_revealed ^ start_revealed {
                                         break;
                                     }
@@ -176,7 +190,7 @@ fn run_field() -> Result<(), Box<dyn Error>> {
                                         let Some(&cell) = dig(&mut field, row, col)? else {
                                             continue;
                                         };
-                                        print_cell(&mut stdout, &mut field, row, col)?;
+                                        print_cell(&mut stdout, &field, row, col)?;
                                         if !cell.is_flagged && cell.is_mine {
                                             kaboom(&mut field, row, col, handle)?;
                                             return Ok(());
@@ -230,6 +244,7 @@ fn kaboom(
                 false
             };
             if needs_update {
+                #[allow(clippy::cast_possible_truncation)]
                 print_cell(&mut stdout(), field, row as u16, col as u16)?;
             }
         }
@@ -311,7 +326,7 @@ fn reveal_empty(field: &mut Minefield, row: u16, col: u16) -> Result<(), Box<dyn
 
 fn print_cell(
     stdout: &mut Stdout,
-    field: &mut Minefield,
+    field: &Minefield,
     row: u16,
     col: u16,
 ) -> Result<(), Box<dyn Error>> {
@@ -326,7 +341,7 @@ fn print_cell(
 #[allow(clippy::cast_possible_truncation)]
 fn end_game(
     message: &str,
-    field: &mut Minefield,
+    field: &Minefield,
     row: u16,
     col: u16,
     handle: TermHandle,
