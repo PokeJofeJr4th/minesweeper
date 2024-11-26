@@ -348,7 +348,7 @@ fn end_game(
     handle: TermHandle,
 ) -> Result<(), Box<dyn Error>> {
     execute!(stdout(), MoveTo(2, field.rows() as u16 + 1))?;
-    println!("{message}");
+    print!("{message}");
     print_cell(&mut stdout(), field, row, col)?;
     wait_till_esc()?;
     drop(handle);
@@ -361,7 +361,7 @@ fn wait_till_esc() -> Result<(), Box<dyn Error>> {
         if matches!(
             event,
             Event::Key(KeyEvent {
-                code: KeyCode::Esc,
+                code: KeyCode::Esc | KeyCode::Char('q' | 'c'),
                 ..
             })
         ) {
