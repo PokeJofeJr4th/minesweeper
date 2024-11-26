@@ -210,7 +210,8 @@ fn run_field(rows: usize, cols: usize) -> Result<(), Box<dyn Error>> {
                                 }
                             }
                         }
-                        KeyCode::Esc => break 'turn,
+                        KeyCode::Esc | KeyCode::Char('q') => break 'turn,
+                        KeyCode::Char('c') if is_modified => break 'turn,
                         _ => continue 'event,
                     }
                 }
