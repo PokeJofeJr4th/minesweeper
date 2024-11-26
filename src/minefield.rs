@@ -150,7 +150,7 @@ impl Minefield {
             }
             println!(" │");
         }
-        println!("└{bar}┘");
+        print!("└{bar}┘");
     }
 
     /// Iterate through all cells in the minefield

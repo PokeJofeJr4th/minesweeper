@@ -27,7 +27,7 @@ fn main() {
     } else if args.len() == 2 {
         if args[1].to_lowercase() == "max" {
             if let Ok((cols, rows)) = crossterm::terminal::size() {
-                run_field(rows as usize - 4, (cols as usize - 3) / 2).unwrap();
+                run_field(rows as usize - 2, (cols as usize - 3) / 2).unwrap();
             } else {
                 println!("Failed to get the terminal window size :(");
             }
