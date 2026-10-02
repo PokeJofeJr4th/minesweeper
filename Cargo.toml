@@ -1,12 +1,11 @@
 [package]
 name = "minesweeper"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bitfield = "0.17.0"
-crossterm = "0.27.0"
-rand = "0.8.5"
-rust-bitfield = "0.1.1"
+bitfield = "0.19.5"
+crossterm = "0.29.0"
+rand = "0.10.0"

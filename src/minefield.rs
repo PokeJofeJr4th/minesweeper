@@ -1,5 +1,5 @@
 use bitfield::bitfield;
-use rand::{thread_rng, Rng};
+use rand;
 
 // #[derive(Default, Clone, Copy, Debug)]
 // pub struct Cell {
@@ -97,10 +97,9 @@ impl Minefield {
                 .take(rows)
                 .collect(),
         };
-        let mut random = thread_rng();
         for _ in 0..(rows * cols / 5) {
-            let row = random.gen_range(0..rows);
-            let col = random.gen_range(0..cols);
+            let row = rand::random_range(0..rows);
+            let col = rand::random_range(0..cols);
             let cell_ref = this.get_mut(row, col).unwrap();
             cell_ref.set_is_mine(true);
         }
