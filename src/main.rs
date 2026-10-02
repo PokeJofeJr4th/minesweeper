@@ -38,7 +38,7 @@ fn main() {
         return;
     }
     println!(
-        "Invalid args. Options:\n\tminesweeper\n\tminesweeper <ROWS> <COLS>\n\tminesweeper max"
+        "Invalid args. Options:\r\n\tminesweeper\r\n\tminesweeper <ROWS> <COLS>\r\n\tminesweeper max"
     );
 }
 

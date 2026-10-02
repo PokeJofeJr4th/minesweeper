@@ -142,13 +142,13 @@ impl Minefield {
 
     pub fn print(&self) {
         let bar = "─".repeat(self.cols * 2 + 1);
-        println!("┌{bar}┐");
+        println!("┌{bar}┐\r");
         for row in &self.content {
             print!("│");
             for cell in row {
                 cell.print();
             }
-            println!(" │");
+            println!(" │\r");
         }
         print!("└{bar}┘");
     }
